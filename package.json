@@ -1,0 +1,12 @@
+{
+  "name": "easy-english-reader",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/chrome": "^0.0.300"
+  }
+}

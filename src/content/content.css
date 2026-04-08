@@ -1,0 +1,38 @@
+.eer-floating-btn {
+  position: fixed;
+  z-index: 2147483647;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #6366f1;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  opacity: 0;
+  animation: eer-fade-in 0.15s ease forwards;
+  padding: 0;
+}
+
+.eer-floating-btn:hover {
+  transform: scale(1.1);
+}
+
+.eer-floating-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+@keyframes eer-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
