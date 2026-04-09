@@ -1,4 +1,5 @@
-import type { AnalysisRequest, AnalysisResponse, CEFRLevel } from "../lib/llm/types";
+import type { AnalysisRequest, CEFRLevel } from "../lib/llm/types";
+import { createProvider } from "../lib/llm/provider-factory";
 import { onMessage } from "../lib/messages/handler";
 import { getSettings } from "../lib/storage/settings";
 import { addHistoryEntry, generateId } from "../lib/storage/history";
@@ -7,21 +8,6 @@ import { addHistoryEntry, generateId } from "../lib/storage/history";
 // State: track the last analysis request so RETRY_ANALYSIS can re-run it
 // ---------------------------------------------------------------------------
 let lastAnalysisRequest: AnalysisRequest | null = null;
-
-// ---------------------------------------------------------------------------
-// Mock LLM provider (placeholder until real providers are wired up)
-// ---------------------------------------------------------------------------
-async function mockAnalyze(
-  request: AnalysisRequest
-): Promise<AnalysisResponse> {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  return {
-    simplified: `[Simplified version of: "${request.selectedText.substring(0, 50)}..."]`,
-    why: "This is a placeholder response. Configure your LLM provider in settings.",
-    glossary: [{ term: "placeholder", meaning: "a temporary substitute" }],
-    confidence: 0.5,
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -66,8 +52,9 @@ async function runAnalysis(
       payload: { selectedText: request.selectedText },
     });
 
-    // TODO: Replace with createProvider(settings.provider).analyze(request)
-    const result = await mockAnalyze(request);
+    const settings = await getSettings();
+    const provider = createProvider(settings.provider);
+    const result = await provider.analyze(request);
 
     await sendToSidePanel({
       type: "ANALYSIS_RESULT",
