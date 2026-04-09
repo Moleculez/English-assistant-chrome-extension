@@ -4,15 +4,6 @@ import { getSettings } from "../lib/storage/settings";
 
 let lastAnalysisRequest: AnalysisRequest | null = null;
 
-function isPdfUrl(url: string | undefined): boolean {
-  if (!url) return false;
-  try {
-    return new URL(url).pathname.toLowerCase().endsWith(".pdf");
-  } catch {
-    return false;
-  }
-}
-
 function sendToSidePanel(message: unknown): Promise<void> {
   return chrome.runtime.sendMessage(message).catch(() => {});
 }
@@ -75,30 +66,39 @@ onMessage("RETRY_ANALYSIS", async (payload) => {
 });
 
 // ---------------------------------------------------------------------------
-// Context menu handler
+// Context menu handler — works for BOTH HTML and PDF pages
 // ---------------------------------------------------------------------------
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== "simplify-selection") return;
+  if (!info.selectionText) return;
 
-  if (isPdfUrl(tab?.url) && info.selectionText) {
-    const settings = await getSettings();
-    const request = buildAnalysisRequest(
-      {
-        selectedText: info.selectionText,
-        leftContext: "",
-        rightContext: "",
-        paragraph: "",
-        heading: "",
-        pageTitle: tab?.title ?? "",
-        pageUrl: tab?.url ?? "",
-        sourceType: "pdf",
-      },
-      settings.defaultLevel
-    );
-    await runAnalysis(request);
-  } else if (tab?.id !== undefined) {
-    await chrome.tabs.sendMessage(tab.id, { type: "TRIGGER_ANALYZE" }).catch(() => {});
+  // Context menu click IS a user gesture — open side panel first
+  if (tab?.windowId) {
+    chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => {});
   }
+
+  // Use selectionText directly (works for PDFs where content scripts can't read selection)
+  const settings = await getSettings();
+  const isPdf = tab?.url
+    ? (() => {
+        try { return new URL(tab.url!).pathname.toLowerCase().endsWith(".pdf"); } catch { return false; }
+      })()
+    : false;
+
+  const request = buildAnalysisRequest(
+    {
+      selectedText: info.selectionText,
+      leftContext: "",
+      rightContext: "",
+      paragraph: "",
+      heading: "",
+      pageTitle: tab?.title ?? "",
+      pageUrl: tab?.url ?? "",
+      sourceType: isPdf ? "pdf" : "html",
+    },
+    settings.defaultLevel
+  );
+  await runAnalysis(request);
 });
 
 // ---------------------------------------------------------------------------
