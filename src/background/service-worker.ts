@@ -124,6 +124,54 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+
+  // Rewrite Origin header for localhost requests so Ollama doesn't reject
+  // them with 403. Ollama allows "http://localhost" but not "chrome-extension://".
+  chrome.declarativeNetRequest.updateDynamicRules({
+    removeRuleIds: [1, 2],
+    addRules: [
+      {
+        id: 1,
+        priority: 1,
+        action: {
+          type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
+          requestHeaders: [
+            {
+              header: "Origin",
+              operation: chrome.declarativeNetRequest.HeaderOperation.SET,
+              value: "http://localhost",
+            },
+          ],
+        },
+        condition: {
+          urlFilter: "||localhost",
+          resourceTypes: [
+            chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST,
+          ],
+        },
+      },
+      {
+        id: 2,
+        priority: 1,
+        action: {
+          type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
+          requestHeaders: [
+            {
+              header: "Origin",
+              operation: chrome.declarativeNetRequest.HeaderOperation.SET,
+              value: "http://127.0.0.1",
+            },
+          ],
+        },
+        condition: {
+          urlFilter: "||127.0.0.1",
+          resourceTypes: [
+            chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST,
+          ],
+        },
+      },
+    ],
+  });
 });
 
 // ---------------------------------------------------------------------------

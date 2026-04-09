@@ -6,7 +6,14 @@ export default defineManifest({
   version: "0.1.0",
   description:
     "ESL reading aid - select text and get simplified English explanations",
-  permissions: ["sidePanel", "contextMenus", "storage", "activeTab", "tabs"],
+  permissions: [
+    "sidePanel",
+    "contextMenus",
+    "storage",
+    "activeTab",
+    "tabs",
+    "declarativeNetRequest",
+  ],
   host_permissions: ["http://localhost:*", "http://127.0.0.1:*", "https://*/*"],
   background: {
     service_worker: "src/background/service-worker.ts",
