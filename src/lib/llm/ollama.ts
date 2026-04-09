@@ -46,6 +46,15 @@ export class OllamaProvider implements LLMProvider {
     }
 
     if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error(
+          "Ollama rejected the request (CORS 403). Set the OLLAMA_ORIGINS " +
+            'environment variable to allow Chrome extensions:\n\n' +
+            'Windows:   setx OLLAMA_ORIGINS "*"\n' +
+            'Mac/Linux: export OLLAMA_ORIGINS="*"\n\n' +
+            "Then restart Ollama."
+        );
+      }
       const body = await response.text().catch(() => "");
       throw new Error(
         `Ollama request failed (${response.status}): ${body.slice(0, 200)}`
