@@ -24,7 +24,7 @@ export class OllamaProvider implements LLMProvider {
 
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+      response = await fetch(`${this.baseUrl}/api/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -33,8 +33,10 @@ export class OllamaProvider implements LLMProvider {
           model: this.model,
           messages,
           format: "json",
-          temperature: 0.3,
-          max_tokens: 1024,
+          stream: false,
+          options: {
+            temperature: 0.3,
+          },
         }),
       });
     } catch (error) {
@@ -51,10 +53,10 @@ export class OllamaProvider implements LLMProvider {
     }
 
     const data = (await response.json()) as {
-      choices?: { message?: { content?: string } }[];
+      message?: { content?: string };
     };
 
-    const content = data.choices?.[0]?.message?.content;
+    const content = data.message?.content;
     if (!content) {
       throw new Error("Ollama returned an empty response.");
     }
