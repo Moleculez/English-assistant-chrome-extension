@@ -1,6 +1,5 @@
 import { BookOpen, Clock, Settings } from "lucide-react";
 import { Button } from "../../ui/components/button";
-import { Badge } from "../../ui/components/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -19,12 +18,6 @@ interface HeaderProps {
   isLoading?: boolean;
 }
 
-const levelBadgeColors: Record<CEFRLevel, string> = {
-  A2: "bg-green-100 text-green-700 border-green-200",
-  B1: "bg-indigo-100 text-indigo-700 border-indigo-200",
-  B2: "bg-amber-100 text-amber-700 border-amber-200",
-};
-
 export function Header({
   currentLevel,
   onLevelChange,
@@ -34,21 +27,17 @@ export function Header({
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between px-3 py-2">
+        <div className="flex items-center gap-1.5">
           <BookOpen
-            className={cn("h-5 w-5 text-indigo-500", isLoading && "animate-pulse")}
+            className={cn("h-4 w-4 text-indigo-500", isLoading && "animate-pulse")}
           />
-          <h1 className="text-sm font-bold tracking-tight">
-            Easy English Reader
+          <h1 className="text-xs font-semibold tracking-tight text-foreground">
+            Easy English
           </h1>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <Badge className={cn("text-[10px] px-1.5 py-0", levelBadgeColors[currentLevel])}>
-            {currentLevel}
-          </Badge>
-
+        <div className="flex items-center gap-1">
           <LevelSelector
             currentLevel={currentLevel}
             onLevelChange={onLevelChange}
@@ -59,11 +48,11 @@ export function Header({
               <Button
                 variant={showHistory ? "secondary" : "ghost"}
                 size="icon"
-                className="h-8 w-8"
+                className="h-7 w-7"
                 onClick={onToggleHistory}
                 aria-label="Toggle history"
               >
-                <Clock className="h-4 w-4" />
+                <Clock className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>History</TooltipContent>
@@ -74,11 +63,11 @@ export function Header({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-7 w-7"
                 onClick={openOptionsPage}
                 aria-label="Settings"
               >
-                <Settings className="h-4 w-4" />
+                <Settings className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Settings</TooltipContent>

@@ -12,10 +12,10 @@ interface LevelSelectorProps {
   onLevelChange: (level: CEFRLevel) => void;
 }
 
-const levels: { value: CEFRLevel; label: string; description: string }[] = [
-  { value: "A2", label: "A2 Easy", description: "Very simple words and short sentences" },
-  { value: "B1", label: "B1 Medium", description: "Common everyday vocabulary and clear structure" },
-  { value: "B2", label: "B2 Precise", description: "Natural phrasing, only complex parts simplified" },
+const levels: { value: CEFRLevel; short: string; label: string; description: string }[] = [
+  { value: "A2", short: "A2", label: "A2 — Easy", description: "Very simple words and short sentences" },
+  { value: "B1", short: "B1", label: "B1 — Medium", description: "Common everyday vocabulary" },
+  { value: "B2", short: "B2", label: "B2 — Precise", description: "Natural phrasing, minimal changes" },
 ];
 
 export function LevelSelector({
@@ -27,15 +27,15 @@ export function LevelSelector({
       value={currentLevel}
       onValueChange={(value) => onLevelChange(value as CEFRLevel)}
     >
-      <SelectTrigger className="h-8 w-[120px] text-xs" aria-label="CEFR Level">
+      <SelectTrigger className="h-7 w-[52px] gap-1 px-2 text-xs font-medium" aria-label="CEFR Level">
         <SelectValue placeholder="Level" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent align="end">
         {levels.map(({ value, label, description }) => (
-          <SelectItem key={value} value={value} className="py-2 text-xs">
+          <SelectItem key={value} value={value} className="py-2">
             <div className="flex flex-col gap-0.5">
-              <span>{label}</span>
-              <span className="text-[10px] text-muted-foreground">{description}</span>
+              <span className="text-xs font-medium">{label}</span>
+              <span className="text-[10px] leading-tight text-muted-foreground">{description}</span>
             </div>
           </SelectItem>
         ))}
