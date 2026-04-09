@@ -6,13 +6,16 @@ import {
   TooltipTrigger,
 } from "../../ui/components/tooltip";
 import { useTts } from "../hooks/useTts";
+import type { TtsProvider } from "../../lib/storage/types";
 
 interface TtsButtonProps {
   text: string;
   voiceURI?: string;
+  ttsProvider?: TtsProvider;
+  coquiServerUrl?: string;
 }
 
-export function TtsButton({ text, voiceURI }: TtsButtonProps) {
+export function TtsButton({ text, voiceURI, ttsProvider, coquiServerUrl }: TtsButtonProps) {
   const { speak, pause, resume, stop, isPlaying, isPaused, isSupported } =
     useTts();
 
@@ -24,7 +27,7 @@ export function TtsButton({ text, voiceURI }: TtsButtonProps) {
     } else if (isPaused) {
       resume();
     } else {
-      speak(text, voiceURI);
+      speak(text, { voiceURI, provider: ttsProvider, coquiServerUrl });
     }
   };
 

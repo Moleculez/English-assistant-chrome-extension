@@ -49,10 +49,20 @@ export function AnalysisView({
 }: AnalysisViewProps) {
   const [copied, setCopied] = useState(false);
   const [ttsVoice, setTtsVoice] = useState("");
+  const [ttsProvider, setTtsProvider] = useState<import("../../lib/storage/types").TtsProvider>("browser");
+  const [coquiServerUrl, setCoquiServerUrl] = useState("http://localhost:5100");
 
   useEffect(() => {
-    getSettings().then((s) => setTtsVoice(s.ttsVoice));
-    return onSettingsChanged((s) => setTtsVoice(s.ttsVoice));
+    getSettings().then((s) => {
+      setTtsVoice(s.ttsVoice);
+      setTtsProvider(s.ttsProvider);
+      setCoquiServerUrl(s.coquiServerUrl);
+    });
+    return onSettingsChanged((s) => {
+      setTtsVoice(s.ttsVoice);
+      setTtsProvider(s.ttsProvider);
+      setCoquiServerUrl(s.coquiServerUrl);
+    });
   }, []);
 
   const handleCopy = async () => {
@@ -112,7 +122,12 @@ export function AnalysisView({
                 {Math.round(analysis.confidence * 100)}% confident
               </Badge>
             </div>
-            <TtsButton text={analysis.simplified} voiceURI={ttsVoice || undefined} />
+            <TtsButton
+              text={analysis.simplified}
+              voiceURI={ttsVoice || undefined}
+              ttsProvider={ttsProvider}
+              coquiServerUrl={coquiServerUrl}
+            />
           </div>
         </CardHeader>
         <CardContent className="p-3 pt-1.5">

@@ -146,30 +146,65 @@ export function PreferencesForm({ settings, onChange }: PreferencesFormProps) {
               onCheckedChange={(checked) => onChange({ ttsEnabled: checked })}
             />
           </div>
-          {settings.ttsEnabled && voices.length > 0 && (
+          {settings.ttsEnabled && (
             <>
               <Separator />
               <div className="space-y-2">
-                <Label htmlFor="tts-voice">Voice</Label>
+                <Label>TTS Engine</Label>
                 <Select
-                  value={settings.ttsVoice || "__default__"}
+                  value={settings.ttsProvider ?? "browser"}
                   onValueChange={(value) =>
-                    onChange({ ttsVoice: value === "__default__" ? "" : value })
+                    onChange({ ttsProvider: value as "browser" | "coqui" })
                   }
                 >
-                  <SelectTrigger id="tts-voice">
-                    <SelectValue placeholder="Default voice" />
+                  <SelectTrigger>
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__default__">Default</SelectItem>
-                    {voices.map((v) => (
-                      <SelectItem key={v.voiceURI} value={v.voiceURI}>
-                        {v.name} ({v.lang})
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="browser">Browser (built-in)</SelectItem>
+                    <SelectItem value="coqui">Coqui XTTS v2 (local server)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {settings.ttsProvider === "coqui" && (
+                <div className="space-y-2">
+                  <Label htmlFor="coqui-url">Coqui Server URL</Label>
+                  <Input
+                    id="coqui-url"
+                    placeholder="http://localhost:5100"
+                    value={settings.coquiServerUrl ?? "http://localhost:5100"}
+                    onChange={(e) => onChange({ coquiServerUrl: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Run the TTS server: <code className="rounded bg-muted px-1 py-0.5 text-[10px]">cd tts-server && python server.py</code>
+                  </p>
+                </div>
+              )}
+
+              {(settings.ttsProvider ?? "browser") === "browser" && voices.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="tts-voice">Voice</Label>
+                  <Select
+                    value={settings.ttsVoice || "__default__"}
+                    onValueChange={(value) =>
+                      onChange({ ttsVoice: value === "__default__" ? "" : value })
+                    }
+                  >
+                    <SelectTrigger id="tts-voice">
+                      <SelectValue placeholder="Default voice" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__default__">Default</SelectItem>
+                      {voices.map((v) => (
+                        <SelectItem key={v.voiceURI} value={v.voiceURI}>
+                          {v.name} ({v.lang})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </>
           )}
         </CardContent>
