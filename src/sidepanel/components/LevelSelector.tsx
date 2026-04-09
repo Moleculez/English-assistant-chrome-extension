@@ -12,10 +12,10 @@ interface LevelSelectorProps {
   onLevelChange: (level: CEFRLevel) => void;
 }
 
-const levels: { value: CEFRLevel; short: string; label: string; description: string }[] = [
-  { value: "A2", short: "A2", label: "A2 — Easy", description: "Very simple words and short sentences" },
-  { value: "B1", short: "B1", label: "B1 — Medium", description: "Common everyday vocabulary" },
-  { value: "B2", short: "B2", label: "B2 — Precise", description: "Natural phrasing, minimal changes" },
+const levels: { value: CEFRLevel; label: string; description: string }[] = [
+  { value: "A2", label: "A2 — Easy", description: "Very simple words and short sentences" },
+  { value: "B1", label: "B1 — Medium", description: "Common everyday vocabulary" },
+  { value: "B2", label: "B2 — Precise", description: "Natural phrasing, minimal changes" },
 ];
 
 export function LevelSelector({
