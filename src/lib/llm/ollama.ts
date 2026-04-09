@@ -9,6 +9,19 @@ import { parseAnalysisResponse } from "../utils/response-parser";
 
 const DEFAULT_OLLAMA_BASE = "http://localhost:11434";
 
+/**
+ * Ollama rejects requests with `Origin: chrome-extension://...`.
+ * Chrome extension service workers always set this header and it can't be
+ * removed via declarativeNetRequest reliably. We override it to the Ollama
+ * server's own origin, which is in its default allowed list.
+ */
+function ollamaFetch(url: string, init?: RequestInit): Promise<Response> {
+  const origin = new URL(url).origin;
+  const headers = new Headers(init?.headers);
+  headers.set("Origin", origin);
+  return fetch(url, { ...init, headers });
+}
+
 export class OllamaProvider implements LLMProvider {
   readonly name = "Ollama";
   private readonly baseUrl: string;
@@ -24,7 +37,7 @@ export class OllamaProvider implements LLMProvider {
 
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}/api/chat`, {
+      response = await ollamaFetch(`${this.baseUrl}/api/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -67,7 +80,7 @@ export class OllamaProvider implements LLMProvider {
   async listModels(): Promise<string[]> {
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}/api/tags`);
+      response = await ollamaFetch(`${this.baseUrl}/api/tags`);
     } catch (error) {
       throw new Error(
         `Cannot connect to Ollama at ${this.baseUrl}. Is Ollama running? (${error instanceof Error ? error.message : String(error)})`
@@ -87,7 +100,7 @@ export class OllamaProvider implements LLMProvider {
 
   async validateConnection(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`);
+      const response = await ollamaFetch(`${this.baseUrl}/api/tags`);
       return response.ok;
     } catch {
       return false;
