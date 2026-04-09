@@ -48,7 +48,9 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ["selection"],
   });
 
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  chrome.sidePanel
+    .setPanelBehavior({ openPanelOnActionClick: true })
+    .catch(() => {});
 });
 
 // ---------------------------------------------------------------------------
