@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify build
+        run: test -f dist/manifest.json
+
+      - name: Package extension
+        run: cd dist && zip -r ../easy-english-reader-${{ github.ref_name }}.zip .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: easy-english-reader-${{ github.ref_name }}.zip
+          generate_release_notes: true
+          body: |
+            ## Easy English Reader ${{ github.ref_name }}
+
+            ### Install
+            1. Download the `.zip` file below
+            2. Unzip it to a folder
+            3. Go to `chrome://extensions` → enable **Developer mode**
+            4. Click **Load unpacked** → select the unzipped folder
+
+            ### Chrome Web Store
+            Upload the `.zip` to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole).
