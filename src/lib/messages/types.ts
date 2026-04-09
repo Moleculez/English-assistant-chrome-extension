@@ -48,6 +48,11 @@ export interface TriggerAnalyzeMessage {
   type: "TRIGGER_ANALYZE";
 }
 
+export interface AnalysisPreviewMessage {
+  type: "ANALYSIS_PREVIEW";
+  payload: { preview: string };
+}
+
 export interface RunAnalysisMessage {
   type: "RUN_ANALYSIS";
   payload: AnalysisRequest;
@@ -61,4 +66,5 @@ export type ExtensionMessage =
   | AnalysisErrorMessage
   | RetryAnalysisMessage
   | TriggerAnalyzeMessage
-  | RunAnalysisMessage;
+  | RunAnalysisMessage
+  | AnalysisPreviewMessage;
