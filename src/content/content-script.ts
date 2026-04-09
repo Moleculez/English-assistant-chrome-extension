@@ -34,6 +34,14 @@ function isExtensionPage(): boolean {
   return location.protocol === "chrome-extension:";
 }
 
+function isPdfPage(): boolean {
+  const url = location.href.toLowerCase();
+  if (url.endsWith(".pdf") || url.includes(".pdf?") || url.includes(".pdf#")) {
+    return true;
+  }
+  return !!document.querySelector('embed[type="application/pdf"]');
+}
+
 function analyzeSelection(): void {
   const context = extractContext();
   if (!context) return;
@@ -50,6 +58,19 @@ function showTooltipNearButton(): void {
   if (!pos) return;
   showTooltip(pos.left, pos.top, TOOLTIP_HINT);
   startTooltipDismissTimer();
+}
+
+function getSelectionPosition(): { x: number; y: number } | null {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return null;
+  try {
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return null;
+    return { x: rect.right, y: rect.top };
+  } catch {
+    return null;
+  }
 }
 
 function handleSelectionChange(x: number, y: number): void {
@@ -96,6 +117,33 @@ function onMouseDown(e: MouseEvent): void {
   hideAll();
 }
 
+// For PDF pages: mouseup doesn't fire from the embed, so we poll
+// selectionchange and derive position from the selection rect.
+function onSelectionChange(): void {
+  if (debounceTimer !== null) {
+    clearTimeout(debounceTimer);
+  }
+
+  debounceTimer = setTimeout(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) {
+      hideAll();
+      return;
+    }
+    const text = selection.toString().trim();
+    if (text.length < MIN_SELECTION_LENGTH) {
+      hideAll();
+      return;
+    }
+
+    const pos = getSelectionPosition();
+    if (pos) {
+      showFloatingIcon(pos.x, pos.y, analyzeSelection);
+      showTooltipNearButton();
+    }
+  }, SELECTION_DEBOUNCE_MS);
+}
+
 function onMessage(
   message: ExtensionMessage,
   _sender: chrome.runtime.MessageSender,
@@ -116,6 +164,12 @@ function init(): void {
   document.addEventListener("mouseup", onMouseUp);
   document.addEventListener("mousedown", onMouseDown);
   chrome.runtime.onMessage.addListener(onMessage);
+
+  // PDF pages: the embed swallows mouse events, so also listen to
+  // selectionchange which fires when text is selected inside the PDF viewer.
+  if (isPdfPage()) {
+    document.addEventListener("selectionchange", onSelectionChange);
+  }
 }
 
 init();
