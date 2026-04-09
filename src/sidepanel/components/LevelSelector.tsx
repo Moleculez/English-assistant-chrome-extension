@@ -1,10 +1,9 @@
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../ui/components/select";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "../../ui/components/tooltip";
+import { cn } from "../../ui/cn";
 import type { CEFRLevel } from "../../lib/llm/types";
 
 interface LevelSelectorProps {
@@ -12,10 +11,10 @@ interface LevelSelectorProps {
   onLevelChange: (level: CEFRLevel) => void;
 }
 
-const levels: { value: CEFRLevel; label: string; description: string }[] = [
-  { value: "A2", label: "A2 — Easy", description: "Very simple words and short sentences" },
-  { value: "B1", label: "B1 — Medium", description: "Common everyday vocabulary" },
-  { value: "B2", label: "B2 — Precise", description: "Natural phrasing, minimal changes" },
+const levels: { value: CEFRLevel; label: string; tip: string }[] = [
+  { value: "A2", label: "A2", tip: "Easy — very simple words" },
+  { value: "B1", label: "B1", tip: "Medium — everyday vocabulary" },
+  { value: "B2", label: "B2", tip: "Precise — natural phrasing" },
 ];
 
 export function LevelSelector({
@@ -23,23 +22,33 @@ export function LevelSelector({
   onLevelChange,
 }: LevelSelectorProps) {
   return (
-    <Select
-      value={currentLevel}
-      onValueChange={(value) => onLevelChange(value as CEFRLevel)}
+    <div
+      className="inline-flex h-7 items-center rounded-md border bg-muted/40 p-0.5"
+      role="radiogroup"
+      aria-label="Reading level"
     >
-      <SelectTrigger className="h-7 w-[52px] gap-1 px-2 text-xs font-medium" aria-label="CEFR Level">
-        <SelectValue placeholder="Level" />
-      </SelectTrigger>
-      <SelectContent align="end">
-        {levels.map(({ value, label, description }) => (
-          <SelectItem key={value} value={value} className="py-2">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-medium">{label}</span>
-              <span className="text-[10px] leading-tight text-muted-foreground">{description}</span>
-            </div>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      {levels.map(({ value, label, tip }) => (
+        <Tooltip key={value}>
+          <TooltipTrigger asChild>
+            <button
+              role="radio"
+              aria-checked={currentLevel === value}
+              onClick={() => onLevelChange(value)}
+              className={cn(
+                "inline-flex h-6 items-center justify-center rounded px-2 text-[11px] font-medium transition-colors",
+                currentLevel === value
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {label}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            {tip}
+          </TooltipContent>
+        </Tooltip>
+      ))}
+    </div>
   );
 }
