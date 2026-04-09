@@ -152,14 +152,16 @@ export function PreferencesForm({ settings, onChange }: PreferencesFormProps) {
               <div className="space-y-2">
                 <Label htmlFor="tts-voice">Voice</Label>
                 <Select
-                  value={settings.ttsVoice}
-                  onValueChange={(value) => onChange({ ttsVoice: value })}
+                  value={settings.ttsVoice || "__default__"}
+                  onValueChange={(value) =>
+                    onChange({ ttsVoice: value === "__default__" ? "" : value })
+                  }
                 >
                   <SelectTrigger id="tts-voice">
                     <SelectValue placeholder="Default voice" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Default</SelectItem>
+                    <SelectItem value="__default__">Default</SelectItem>
                     {voices.map((v) => (
                       <SelectItem key={v.voiceURI} value={v.voiceURI}>
                         {v.name} ({v.lang})

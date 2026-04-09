@@ -33,12 +33,7 @@ function sendToSidePanel(message: unknown): Promise<void> {
 // ---------------------------------------------------------------------------
 // Core analysis pipeline
 // ---------------------------------------------------------------------------
-async function runAnalysis(
-  request: AnalysisRequest,
-  tabId: number | undefined
-): Promise<void> {
-  lastAnalysisRequest = request;
-
+async function openSidePanel(tabId: number | undefined): Promise<void> {
   try {
     if (tabId !== undefined) {
       const tab = await chrome.tabs.get(tabId);
@@ -46,7 +41,18 @@ async function runAnalysis(
         await chrome.sidePanel.open({ windowId: tab.windowId });
       }
     }
+  } catch {
+    // sidePanel.open() requires user gesture context — fails when called
+    // from message handlers. The panel may already be open.
+  }
+}
 
+async function runAnalysis(
+  request: AnalysisRequest
+): Promise<void> {
+  lastAnalysisRequest = request;
+
+  try {
     await sendToSidePanel({
       type: "ANALYSIS_STARTED",
       payload: { selectedText: request.selectedText },
@@ -125,9 +131,10 @@ chrome.runtime.onInstalled.addListener(() => {
 // ---------------------------------------------------------------------------
 
 onMessage("ANALYZE_REQUEST", async (payload, sender) => {
+  await openSidePanel(sender.tab?.id);
   const settings = await getSettings();
   const request = buildAnalysisRequest(payload, settings.defaultLevel);
-  await runAnalysis(request, sender.tab?.id);
+  await runAnalysis(request);
 });
 
 onMessage("RETRY_ANALYSIS", async (payload) => {
@@ -144,7 +151,7 @@ onMessage("RETRY_ANALYSIS", async (payload) => {
     level: payload.level,
   };
 
-  await runAnalysis(updatedRequest, undefined);
+  await runAnalysis(updatedRequest);
 });
 
 // ---------------------------------------------------------------------------
@@ -152,6 +159,11 @@ onMessage("RETRY_ANALYSIS", async (payload) => {
 // ---------------------------------------------------------------------------
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== "simplify-selection") return;
+
+  // Open side panel here — context menu click IS a user gesture
+  if (tab?.windowId) {
+    await chrome.sidePanel.open({ windowId: tab.windowId });
+  }
 
   if (isPdfUrl(tab?.url) && info.selectionText) {
     const settings = await getSettings();
@@ -168,7 +180,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       },
       settings.defaultLevel
     );
-    await runAnalysis(request, tab?.id);
+    await runAnalysis(request);
   } else if (tab?.id !== undefined) {
     await chrome.tabs.sendMessage(tab.id, { type: "TRIGGER_ANALYZE" });
   }
@@ -184,6 +196,11 @@ chrome.commands.onCommand.addListener(async (command) => {
     active: true,
     currentWindow: true,
   });
+
+  // Open side panel here — keyboard shortcut IS a user gesture
+  if (activeTab?.windowId) {
+    await chrome.sidePanel.open({ windowId: activeTab.windowId });
+  }
 
   if (activeTab?.id !== undefined) {
     await chrome.tabs.sendMessage(activeTab.id, { type: "TRIGGER_ANALYZE" });
