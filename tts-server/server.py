@@ -1,24 +1,32 @@
 """
-Coqui XTTS v2 TTS Server for Easy English Reader.
+Coqui TTS Server for Easy English Reader.
 
-Provides a local HTTP API that the Chrome extension calls to generate speech.
-Supports voice cloning from a reference audio file.
+Uses VITS by default (no reference audio needed).
+If --speaker is provided, uses XTTS v2 for voice cloning.
 
 Usage:
-    python server.py                          # default voice
-    python server.py --speaker voice.wav      # clone a voice from a sample
+    python server.py                          # VITS default voice
+    python server.py --speaker voice.wav      # XTTS v2 voice cloning
 
 API:
     POST /tts  {"text": "hello", "language": "en"}  -> audio/wav
-    GET  /voices                                     -> available speakers
     GET  /health                                     -> server status
 """
 
 import argparse
-import io
-import sys
+import os
 import tempfile
-import wave
+
+os.environ["COQUI_TOS_AGREED"] = "1"
+
+# Ensure espeak-ng is in PATH on Windows
+espeak_paths = [
+    r"C:\Program Files\eSpeak NG",
+    r"C:\Program Files (x86)\eSpeak NG",
+]
+for p in espeak_paths:
+    if os.path.isdir(p) and p not in os.environ.get("PATH", ""):
+        os.environ["PATH"] = os.environ["PATH"] + os.pathsep + p
 
 from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
@@ -28,49 +36,38 @@ CORS(app)
 
 tts_model = None
 speaker_wav = None
-default_language = "en"
+model_name = ""
 
 
-def load_model():
-    global tts_model
-    print("Loading XTTS v2 model (first run downloads ~1.8GB)...")
+def load_model(use_xtts: bool):
+    global tts_model, model_name
     from TTS.api import TTS
 
-    tts_model = TTS("tts_models/multilingual/multi-dataset/xtts_v2")
+    if use_xtts:
+        model_name = "xtts_v2"
+        print("Loading XTTS v2 (voice cloning, ~1.8GB)...")
+        tts_model = TTS("tts_models/multilingual/multi-dataset/xtts_v2")
+    else:
+        model_name = "vits"
+        print("Loading VITS (default voice, ~100MB)...")
+        tts_model = TTS("tts_models/en/ljspeech/vits")
 
-    if hasattr(tts_model.synthesizer, "cuda"):
+    if hasattr(tts_model, "to"):
         try:
             tts_model.to("cuda")
-            print("Using GPU for inference")
+            print("Using GPU")
         except Exception:
-            print("GPU not available, using CPU (slower)")
+            print("Using CPU")
 
-    print("Model loaded and ready")
+    print("Model ready")
 
 
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({
         "status": "ok",
-        "model": "xtts_v2",
+        "model": model_name,
         "speaker": speaker_wav or "default",
-    })
-
-
-@app.route("/voices", methods=["GET"])
-def voices():
-    if tts_model is None:
-        return jsonify({"voices": []})
-
-    speakers = []
-    if hasattr(tts_model.synthesizer, "tts_model"):
-        model = tts_model.synthesizer.tts_model
-        if hasattr(model, "speaker_manager") and model.speaker_manager:
-            speakers = list(model.speaker_manager.name_to_id.keys())
-
-    return jsonify({
-        "voices": speakers,
-        "custom_speaker": speaker_wav is not None,
     })
 
 
@@ -81,19 +78,19 @@ def synthesize():
 
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
-    language = data.get("language", default_language)
+    language = data.get("language", "en")
 
     if not text:
         return jsonify({"error": "No text provided"}), 400
-
     if len(text) > 5000:
         return jsonify({"error": "Text too long (max 5000 chars)"}), 400
 
     try:
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-            tmp_path = tmp.name
+        tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+        tmp_path = tmp.name
+        tmp.close()
 
-        if speaker_wav:
+        if speaker_wav and model_name == "xtts_v2":
             tts_model.tts_to_file(
                 text=text,
                 speaker_wav=speaker_wav,
@@ -101,38 +98,31 @@ def synthesize():
                 file_path=tmp_path,
             )
         else:
-            tts_model.tts_to_file(
-                text=text,
-                language=language,
-                file_path=tmp_path,
-            )
+            tts_model.tts_to_file(text=text, file_path=tmp_path)
 
         return send_file(tmp_path, mimetype="audio/wav")
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 def main():
-    global speaker_wav, default_language
+    global speaker_wav
 
-    parser = argparse.ArgumentParser(description="Coqui XTTS v2 TTS Server")
-    parser.add_argument("--port", type=int, default=5100, help="Server port (default: 5100)")
-    parser.add_argument("--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)")
-    parser.add_argument("--speaker", type=str, help="Path to speaker reference WAV file for voice cloning")
-    parser.add_argument("--language", default="en", help="Default language (default: en)")
+    parser = argparse.ArgumentParser(description="Coqui TTS Server")
+    parser.add_argument("--port", type=int, default=5100)
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--speaker", type=str, help="WAV file for XTTS v2 voice cloning")
     args = parser.parse_args()
 
     speaker_wav = args.speaker
-    default_language = args.language
+    use_xtts = speaker_wav is not None
 
     if speaker_wav:
         print(f"Voice cloning from: {speaker_wav}")
 
-    load_model()
+    load_model(use_xtts)
 
-    print(f"\nTTS server running at http://{args.host}:{args.port}")
-    print(f"Extension should connect to: http://localhost:{args.port}")
+    print(f"\nServer: http://{args.host}:{args.port}")
     app.run(host=args.host, port=args.port, threaded=True)
 
 
