@@ -4,7 +4,7 @@ import { ThemeProvider } from "../ui/theme-provider";
 import { ScrollArea } from "../ui/components/scroll-area";
 import type { AnalysisResponse, CEFRLevel } from "../lib/llm/types";
 import type { HistoryEntry } from "../lib/storage/types";
-import { getSettings } from "../lib/storage/settings";
+import { getSettings, onSettingsChanged } from "../lib/storage/settings";
 import { useAnalysis } from "./hooks/useAnalysis";
 import { useHistory } from "./hooks/useHistory";
 import { Header } from "./components/Header";
@@ -32,9 +32,8 @@ export function App() {
   const [restoredSelectedText, setRestoredSelectedText] = useState("");
 
   useEffect(() => {
-    getSettings().then((settings) => {
-      setCurrentLevel(settings.defaultLevel);
-    });
+    getSettings().then((s) => setCurrentLevel(s.defaultLevel));
+    return onSettingsChanged((s) => setCurrentLevel(s.defaultLevel));
   }, []);
 
   const analysis = restoredAnalysis ?? liveAnalysis;

@@ -33,20 +33,6 @@ function sendToSidePanel(message: unknown): Promise<void> {
 // ---------------------------------------------------------------------------
 // Core analysis pipeline
 // ---------------------------------------------------------------------------
-async function openSidePanel(tabId: number | undefined): Promise<void> {
-  try {
-    if (tabId !== undefined) {
-      const tab = await chrome.tabs.get(tabId);
-      if (tab.windowId !== undefined) {
-        await chrome.sidePanel.open({ windowId: tab.windowId });
-      }
-    }
-  } catch {
-    // sidePanel.open() requires user gesture context — fails when called
-    // from message handlers. The panel may already be open.
-  }
-}
-
 async function runAnalysis(
   request: AnalysisRequest
 ): Promise<void> {
@@ -127,50 +113,29 @@ chrome.runtime.onInstalled.addListener(() => {
 
   // Rewrite Origin header for localhost requests so Ollama doesn't reject
   // them with 403. Ollama allows "http://localhost" but not "chrome-extension://".
+  const localhostHosts = ["localhost", "127.0.0.1"];
   chrome.declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: [1, 2],
-    addRules: [
-      {
-        id: 1,
-        priority: 1,
-        action: {
-          type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
-          requestHeaders: [
-            {
-              header: "Origin",
-              operation: chrome.declarativeNetRequest.HeaderOperation.SET,
-              value: "http://localhost",
-            },
-          ],
-        },
-        condition: {
-          urlFilter: "||localhost",
-          resourceTypes: [
-            chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST,
-          ],
-        },
+    removeRuleIds: localhostHosts.map((_, i) => i + 1),
+    addRules: localhostHosts.map((host, i) => ({
+      id: i + 1,
+      priority: 1,
+      action: {
+        type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS as chrome.declarativeNetRequest.RuleActionType,
+        requestHeaders: [
+          {
+            header: "Origin",
+            operation: chrome.declarativeNetRequest.HeaderOperation.SET,
+            value: `http://${host}`,
+          },
+        ],
       },
-      {
-        id: 2,
-        priority: 1,
-        action: {
-          type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
-          requestHeaders: [
-            {
-              header: "Origin",
-              operation: chrome.declarativeNetRequest.HeaderOperation.SET,
-              value: "http://127.0.0.1",
-            },
-          ],
-        },
-        condition: {
-          urlFilter: "||127.0.0.1",
-          resourceTypes: [
-            chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST,
-          ],
-        },
+      condition: {
+        urlFilter: `||${host}`,
+        resourceTypes: [
+          chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST,
+        ],
       },
-    ],
+    })),
   });
 });
 
@@ -179,7 +144,6 @@ chrome.runtime.onInstalled.addListener(() => {
 // ---------------------------------------------------------------------------
 
 onMessage("ANALYZE_REQUEST", async (payload, sender) => {
-  await openSidePanel(sender.tab?.id);
   const settings = await getSettings();
   const request = buildAnalysisRequest(payload, settings.defaultLevel);
   await runAnalysis(request);
