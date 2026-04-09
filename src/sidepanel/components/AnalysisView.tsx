@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
 import {
   Card,
@@ -10,6 +10,7 @@ import { Button } from "../../ui/components/button";
 import { Badge } from "../../ui/components/badge";
 import { Separator } from "../../ui/components/separator";
 import type { AnalysisResponse, CEFRLevel } from "../../lib/llm/types";
+import { getSettings, onSettingsChanged } from "../../lib/storage/settings";
 import { GlossaryList } from "./GlossaryList";
 import { TtsButton } from "./TtsButton";
 
@@ -26,6 +27,12 @@ export function AnalysisView({
 }: AnalysisViewProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [ttsVoice, setTtsVoice] = useState("");
+
+  useEffect(() => {
+    getSettings().then((s) => setTtsVoice(s.ttsVoice));
+    return onSettingsChanged((s) => setTtsVoice(s.ttsVoice));
+  }, []);
 
   const truncatedOriginal =
     selectedText.length > 100
@@ -75,7 +82,7 @@ export function AnalysisView({
             <CardTitle className="text-xs text-muted-foreground">
               Simplified
             </CardTitle>
-            <TtsButton text={analysis.simplified} />
+            <TtsButton text={analysis.simplified} voiceURI={ttsVoice || undefined} />
           </div>
         </CardHeader>
         <CardContent className="p-3 pt-1.5">
