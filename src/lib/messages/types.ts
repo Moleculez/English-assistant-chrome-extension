@@ -3,18 +3,20 @@ import type { AnalysisResponse, CEFRLevel } from "../llm/types";
 export type { CEFRLevel } from "../llm/types";
 export type SourceType = "html" | "pdf";
 
+export interface SelectionContext {
+  selectedText: string;
+  leftContext: string;
+  rightContext: string;
+  paragraph: string;
+  heading: string;
+  pageTitle: string;
+  pageUrl: string;
+  sourceType: SourceType;
+}
+
 export interface AnalyzeRequestMessage {
   type: "ANALYZE_REQUEST";
-  payload: {
-    selectedText: string;
-    leftContext: string;
-    rightContext: string;
-    paragraph: string;
-    heading: string;
-    pageTitle: string;
-    pageUrl: string;
-    sourceType: SourceType;
-  };
+  payload: SelectionContext;
 }
 
 export interface SelectionChangedMessage {
