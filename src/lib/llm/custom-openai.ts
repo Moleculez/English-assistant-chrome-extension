@@ -5,6 +5,7 @@ import type {
   ProviderConfig,
 } from "./types";
 import { buildPrompt } from "./prompt-builder";
+import { readSSEStream } from "./stream-reader";
 import { parseAnalysisResponse } from "../utils/response-parser";
 
 export class CustomOpenAIProvider implements LLMProvider {
@@ -74,6 +75,49 @@ export class CustomOpenAIProvider implements LLMProvider {
     }
 
     return parseAnalysisResponse(content);
+  }
+
+  async analyzeStream(
+    request: AnalysisRequest,
+    onToken: (token: string) => void,
+  ): Promise<AnalysisResponse> {
+    const messages = buildPrompt(request);
+
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+        method: "POST",
+        headers: this.headers(),
+        body: JSON.stringify({
+          model: this.model,
+          messages,
+          stream: true,
+          temperature: 0.3,
+          max_tokens: 1024,
+        }),
+      });
+    } catch (error) {
+      throw new Error(
+        `Cannot connect to ${this.baseUrl}. (${error instanceof Error ? error.message : String(error)})`,
+      );
+    }
+
+    if (response.status === 401) {
+      throw new Error("Authentication failed. Check your API key.");
+    }
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(
+        `Request failed (${response.status}): ${body.slice(0, 200)}`,
+      );
+    }
+
+    if (!response.body) {
+      throw new Error("Provider returned no response body for streaming.");
+    }
+
+    const accumulated = await readSSEStream(response.body, onToken);
+    return parseAnalysisResponse(accumulated);
   }
 
   async listModels(): Promise<string[]> {

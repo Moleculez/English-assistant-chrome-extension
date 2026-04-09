@@ -12,6 +12,7 @@ interface UseAnalysisReturn {
   analysis: AnalysisResponse | null;
   selectedText: string;
   isLoading: boolean;
+  streamedText: string;
   error: { message: string; retryable: boolean } | null;
   retry: (level: CEFRLevel) => void;
 }
@@ -20,6 +21,7 @@ export function useAnalysis(): UseAnalysisReturn {
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [selectedText, setSelectedText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [streamedText, setStreamedText] = useState("");
   const [error, setError] = useState<{
     message: string;
     retryable: boolean;
@@ -32,12 +34,23 @@ export function useAnalysis(): UseAnalysisReturn {
     setSelectedText(request.selectedText);
     setAnalysis(null);
     setError(null);
+    setStreamedText("");
     setIsLoading(true);
 
     try {
       const settings = await getSettings();
       const provider = createProvider(settings.provider);
-      const result = await provider.analyze(request);
+
+      let result: AnalysisResponse;
+      try {
+        result = await provider.analyzeStream(request, (token) => {
+          setStreamedText((prev) => prev + token);
+        });
+      } catch {
+        // Fall back to non-streaming if analyzeStream fails
+        setStreamedText("");
+        result = await provider.analyze(request);
+      }
 
       setAnalysis(result);
       setError(null);
@@ -81,8 +94,8 @@ export function useAnalysis(): UseAnalysisReturn {
       if (!lastRequestRef.current) return;
       executeAnalysis({ ...lastRequestRef.current, level });
     },
-    [executeAnalysis]
+    [executeAnalysis],
   );
 
-  return { analysis, selectedText, isLoading, error, retry };
+  return { analysis, selectedText, isLoading, streamedText, error, retry };
 }

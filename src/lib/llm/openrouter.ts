@@ -5,6 +5,7 @@ import type {
   ProviderConfig,
 } from "./types";
 import { buildPrompt } from "./prompt-builder";
+import { readSSEStream } from "./stream-reader";
 import { parseAnalysisResponse } from "../utils/response-parser";
 
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
@@ -65,6 +66,50 @@ export class OpenRouterProvider implements LLMProvider {
     }
 
     return parseAnalysisResponse(content);
+  }
+
+  async analyzeStream(
+    request: AnalysisRequest,
+    onToken: (token: string) => void,
+  ): Promise<AnalysisResponse> {
+    const messages = buildPrompt(request);
+
+    const response = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://easy-english-reader.extension",
+        "X-Title": "Easy English Reader",
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages,
+        stream: true,
+        temperature: 0.3,
+        max_tokens: 1024,
+      }),
+    });
+
+    if (response.status === 401) {
+      throw new Error("OpenRouter authentication failed. Check your API key.");
+    }
+    if (response.status === 429) {
+      throw new Error("OpenRouter rate limit reached. Please wait and retry.");
+    }
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(
+        `OpenRouter request failed (${response.status}): ${body.slice(0, 200)}`,
+      );
+    }
+
+    if (!response.body) {
+      throw new Error("OpenRouter returned no response body for streaming.");
+    }
+
+    const accumulated = await readSSEStream(response.body, onToken);
+    return parseAnalysisResponse(accumulated);
   }
 
   async listModels(): Promise<string[]> {

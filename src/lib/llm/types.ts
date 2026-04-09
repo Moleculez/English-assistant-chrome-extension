@@ -35,6 +35,10 @@ export interface ProviderConfig {
 export interface LLMProvider {
   readonly name: string;
   analyze(request: AnalysisRequest): Promise<AnalysisResponse>;
+  analyzeStream(
+    request: AnalysisRequest,
+    onToken: (token: string) => void,
+  ): Promise<AnalysisResponse>;
   listModels?(): Promise<string[]>;
   validateConnection(): Promise<boolean>;
 }

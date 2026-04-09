@@ -19,6 +19,7 @@ export function App() {
     analysis: liveAnalysis,
     selectedText: liveSelectedText,
     isLoading,
+    streamedText,
     error,
     retry,
   } = useAnalysis();
@@ -79,8 +80,20 @@ export function App() {
       );
     }
 
-    if (isLoading) {
+    if (isLoading && !streamedText) {
       return <LoadingState selectedText={selectedText} />;
+    }
+
+    if (isLoading && streamedText) {
+      return (
+        <AnalysisView
+          analysis={null}
+          selectedText={selectedText}
+          currentLevel={currentLevel}
+          streamedText={streamedText}
+          isStreaming
+        />
+      );
     }
 
     if (error) {
