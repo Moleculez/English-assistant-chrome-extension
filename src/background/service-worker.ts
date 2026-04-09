@@ -17,15 +17,6 @@ function sendToSidePanel(message: unknown): Promise<void> {
   return chrome.runtime.sendMessage(message).catch(() => {});
 }
 
-function tryOpenSidePanel(windowId: number | undefined): void {
-  if (windowId === undefined) return;
-  try {
-    chrome.sidePanel.open({ windowId }).catch(() => {});
-  } catch {
-    // sidePanel.open() may throw synchronously if not in a user gesture
-  }
-}
-
 async function runAnalysis(request: AnalysisRequest): Promise<void> {
   lastAnalysisRequest = request;
   await sendToSidePanel({ type: "RUN_ANALYSIS", payload: request });
@@ -87,9 +78,6 @@ onMessage("RETRY_ANALYSIS", async (payload) => {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== "simplify-selection") return;
 
-  // Call immediately before any await — preserves user gesture context
-  tryOpenSidePanel(tab?.windowId);
-
   if (isPdfUrl(tab?.url) && info.selectionText) {
     const settings = await getSettings();
     const request = buildAnalysisRequest(
@@ -121,9 +109,6 @@ chrome.commands.onCommand.addListener(async (command) => {
     active: true,
     currentWindow: true,
   });
-
-  // User gesture chain may be broken by the await above — tryOpenSidePanel handles this gracefully
-  tryOpenSidePanel(activeTab?.windowId);
 
   if (activeTab?.id !== undefined) {
     await chrome.tabs.sendMessage(activeTab.id, { type: "TRIGGER_ANALYZE" }).catch(() => {});
