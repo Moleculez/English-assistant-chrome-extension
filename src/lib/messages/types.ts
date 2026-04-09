@@ -1,4 +1,4 @@
-import type { AnalysisResponse, CEFRLevel } from "../llm/types";
+import type { AnalysisRequest, AnalysisResponse, CEFRLevel } from "../llm/types";
 
 export type { CEFRLevel } from "../llm/types";
 export type SourceType = "html" | "pdf";
@@ -48,6 +48,11 @@ export interface TriggerAnalyzeMessage {
   type: "TRIGGER_ANALYZE";
 }
 
+export interface RunAnalysisMessage {
+  type: "RUN_ANALYSIS";
+  payload: AnalysisRequest;
+}
+
 export type ExtensionMessage =
   | AnalyzeRequestMessage
   | SelectionChangedMessage
@@ -55,4 +60,5 @@ export type ExtensionMessage =
   | AnalysisResultMessage
   | AnalysisErrorMessage
   | RetryAnalysisMessage
-  | TriggerAnalyzeMessage;
+  | TriggerAnalyzeMessage
+  | RunAnalysisMessage;

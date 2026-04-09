@@ -1,8 +1,6 @@
 import type { AnalysisRequest, CEFRLevel } from "../lib/llm/types";
-import { createProvider } from "../lib/llm/provider-factory";
 import { onMessage } from "../lib/messages/handler";
 import { getSettings } from "../lib/storage/settings";
-import { addHistoryEntry, generateId } from "../lib/storage/history";
 
 // ---------------------------------------------------------------------------
 // State: track the last analysis request so RETRY_ANALYSIS can re-run it
@@ -25,52 +23,17 @@ function isPdfUrl(url: string | undefined): boolean {
 
 /** Send a message to the side panel, ignoring errors if it is not open yet. */
 function sendToSidePanel(message: unknown): Promise<void> {
-  return chrome.runtime.sendMessage(message).catch(() => {
-    // Side panel may not be open yet; ignore send failures
-  });
+  return chrome.runtime.sendMessage(message).catch(() => {});
 }
 
-// ---------------------------------------------------------------------------
-// Core analysis pipeline
-// ---------------------------------------------------------------------------
-async function runAnalysis(
-  request: AnalysisRequest
-): Promise<void> {
+/**
+ * Send analysis request to the side panel for execution.
+ * The side panel makes the actual LLM call — extension pages can fetch
+ * without the Origin header issues that service workers have with Ollama.
+ */
+async function runAnalysis(request: AnalysisRequest): Promise<void> {
   lastAnalysisRequest = request;
-
-  try {
-    await sendToSidePanel({
-      type: "ANALYSIS_STARTED",
-      payload: { selectedText: request.selectedText },
-    });
-
-    const settings = await getSettings();
-    const provider = createProvider(settings.provider);
-    const result = await provider.analyze(request);
-
-    await sendToSidePanel({
-      type: "ANALYSIS_RESULT",
-      payload: result,
-    });
-
-    await addHistoryEntry({
-      id: generateId(),
-      selectedText: request.selectedText,
-      simplified: result.simplified,
-      why: result.why,
-      glossary: result.glossary,
-      level: request.level,
-      sourceUrl: request.pageUrl,
-      timestamp: Date.now(),
-    });
-  } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : "Unknown error occurred";
-    await sendToSidePanel({
-      type: "ANALYSIS_ERROR",
-      payload: { error: errorMessage, retryable: true },
-    });
-  }
+  await sendToSidePanel({ type: "RUN_ANALYSIS", payload: request });
 }
 
 function buildAnalysisRequest(
@@ -86,17 +49,7 @@ function buildAnalysisRequest(
   },
   level: CEFRLevel
 ): AnalysisRequest {
-  return {
-    selectedText: payload.selectedText,
-    leftContext: payload.leftContext,
-    rightContext: payload.rightContext,
-    paragraph: payload.paragraph,
-    heading: payload.heading,
-    pageTitle: payload.pageTitle,
-    pageUrl: payload.pageUrl,
-    sourceType: payload.sourceType,
-    level,
-  };
+  return { ...payload, level };
 }
 
 // ---------------------------------------------------------------------------
@@ -116,7 +69,7 @@ chrome.runtime.onInstalled.addListener(() => {
 // Message handlers
 // ---------------------------------------------------------------------------
 
-onMessage("ANALYZE_REQUEST", async (payload, sender) => {
+onMessage("ANALYZE_REQUEST", async (payload) => {
   const settings = await getSettings();
   const request = buildAnalysisRequest(payload, settings.defaultLevel);
   await runAnalysis(request);
@@ -130,13 +83,7 @@ onMessage("RETRY_ANALYSIS", async (payload) => {
     });
     return;
   }
-
-  const updatedRequest: AnalysisRequest = {
-    ...lastAnalysisRequest,
-    level: payload.level,
-  };
-
-  await runAnalysis(updatedRequest);
+  await runAnalysis({ ...lastAnalysisRequest, level: payload.level });
 });
 
 // ---------------------------------------------------------------------------
@@ -145,7 +92,6 @@ onMessage("RETRY_ANALYSIS", async (payload) => {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== "simplify-selection") return;
 
-  // Open side panel here — context menu click IS a user gesture
   if (tab?.windowId) {
     await chrome.sidePanel.open({ windowId: tab.windowId });
   }
@@ -182,7 +128,6 @@ chrome.commands.onCommand.addListener(async (command) => {
     currentWindow: true,
   });
 
-  // Open side panel here — keyboard shortcut IS a user gesture
   if (activeTab?.windowId) {
     await chrome.sidePanel.open({ windowId: activeTab.windowId });
   }

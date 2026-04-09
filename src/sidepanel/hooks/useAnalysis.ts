@@ -1,10 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
-import type { AnalysisResponse, CEFRLevel } from "../../lib/llm/types";
-
-type AnalysisState = "idle" | "loading" | "success" | "error";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type {
+  AnalysisRequest,
+  AnalysisResponse,
+  CEFRLevel,
+} from "../../lib/llm/types";
+import { createProvider } from "../../lib/llm/provider-factory";
+import { getSettings } from "../../lib/storage/settings";
+import { addHistoryEntry, generateId } from "../../lib/storage/history";
 
 interface UseAnalysisReturn {
-  state: AnalysisState;
   analysis: AnalysisResponse | null;
   selectedText: string;
   isLoading: boolean;
@@ -13,78 +17,72 @@ interface UseAnalysisReturn {
 }
 
 export function useAnalysis(): UseAnalysisReturn {
-  const [state, setState] = useState<AnalysisState>("idle");
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [selectedText, setSelectedText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<{
     message: string;
     retryable: boolean;
   } | null>(null);
 
+  const lastRequestRef = useRef<AnalysisRequest | null>(null);
+
+  const executeAnalysis = useCallback(async (request: AnalysisRequest) => {
+    lastRequestRef.current = request;
+    setSelectedText(request.selectedText);
+    setAnalysis(null);
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const settings = await getSettings();
+      const provider = createProvider(settings.provider);
+      const result = await provider.analyze(request);
+
+      setAnalysis(result);
+      setError(null);
+
+      await addHistoryEntry({
+        id: generateId(),
+        selectedText: request.selectedText,
+        simplified: result.simplified,
+        why: result.why,
+        glossary: result.glossary,
+        level: request.level,
+        sourceUrl: request.pageUrl,
+        timestamp: Date.now(),
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unknown error occurred";
+      setError({ message, retryable: true });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const handleMessage = (
-      message: { type: string; payload: unknown },
-      _sender: chrome.runtime.MessageSender,
-      _sendResponse: (response?: unknown) => void
-    ) => {
-      switch (message.type) {
-        case "ANALYSIS_STARTED": {
-          const payload = message.payload as { selectedText: string };
-          setSelectedText(payload.selectedText);
-          setAnalysis(null);
-          setError(null);
-          setState("loading");
-          break;
-        }
-        case "ANALYSIS_RESULT": {
-          const payload = message.payload as AnalysisResponse;
-          setAnalysis(payload);
-          setError(null);
-          setState("success");
-          break;
-        }
-        case "ANALYSIS_ERROR": {
-          const payload = message.payload as {
-            error: string;
-            retryable: boolean;
-          };
-          setError({ message: payload.error, retryable: payload.retryable });
-          setState("error");
-          break;
-        }
+    const handleMessage = (msg: { type: string; payload: unknown }) => {
+      if (msg.type === "RUN_ANALYSIS") {
+        executeAnalysis(msg.payload as AnalysisRequest);
       }
     };
 
     try {
       chrome.runtime.onMessage.addListener(handleMessage);
-      return () => {
-        chrome.runtime.onMessage.removeListener(handleMessage);
-      };
+      return () => chrome.runtime.onMessage.removeListener(handleMessage);
     } catch {
-      // chrome.runtime not available
       return;
     }
-  }, []);
+  }, [executeAnalysis]);
 
-  const retry = useCallback((level: CEFRLevel) => {
-    setState("loading");
-    setError(null);
-    try {
-      chrome.runtime.sendMessage({
-        type: "RETRY_ANALYSIS",
-        payload: { level },
-      });
-    } catch {
-      // chrome.runtime not available
-    }
-  }, []);
+  const retry = useCallback(
+    (level: CEFRLevel) => {
+      if (!lastRequestRef.current) return;
+      executeAnalysis({ ...lastRequestRef.current, level });
+    },
+    [executeAnalysis]
+  );
 
-  return {
-    state,
-    analysis,
-    selectedText,
-    isLoading: state === "loading",
-    error,
-    retry,
-  };
+  return { analysis, selectedText, isLoading, error, retry };
 }
