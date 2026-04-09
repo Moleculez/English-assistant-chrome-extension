@@ -12,11 +12,11 @@ interface LevelSelectorProps {
   onLevelChange: (level: CEFRLevel) => void;
 }
 
-const levelLabels: Record<CEFRLevel, string> = {
-  A2: "A2 Easy",
-  B1: "B1 Medium",
-  B2: "B2 Precise",
-};
+const levels: { value: CEFRLevel; label: string; description: string }[] = [
+  { value: "A2", label: "A2 Easy", description: "Very simple words and short sentences" },
+  { value: "B1", label: "B1 Medium", description: "Common everyday vocabulary and clear structure" },
+  { value: "B2", label: "B2 Precise", description: "Natural phrasing, only complex parts simplified" },
+];
 
 export function LevelSelector({
   currentLevel,
@@ -31,9 +31,12 @@ export function LevelSelector({
         <SelectValue placeholder="Level" />
       </SelectTrigger>
       <SelectContent>
-        {(Object.keys(levelLabels) as CEFRLevel[]).map((level) => (
-          <SelectItem key={level} value={level} className="text-xs">
-            {levelLabels[level]}
+        {levels.map(({ value, label, description }) => (
+          <SelectItem key={value} value={value} className="py-2 text-xs">
+            <div className="flex flex-col gap-0.5">
+              <span>{label}</span>
+              <span className="text-[10px] text-muted-foreground">{description}</span>
+            </div>
           </SelectItem>
         ))}
       </SelectContent>

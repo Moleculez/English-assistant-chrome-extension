@@ -115,6 +115,7 @@ export function App() {
             onLevelChange={handleLevelChange}
             showHistory={showHistory}
             onToggleHistory={() => setShowHistory((prev) => !prev)}
+            isLoading={isLoading}
           />
           <ScrollArea className="flex-1">
             <main>{renderContent()}</main>
