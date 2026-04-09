@@ -32,6 +32,9 @@ Desktop.ini
 *.log
 npm-debug.log*
 
+# TTS server
+tts-server/venv/
+
 # Chrome extension dev
 *.crx
 *.pem
