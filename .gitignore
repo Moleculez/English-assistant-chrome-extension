@@ -36,3 +36,4 @@ npm-debug.log*
 *.crx
 *.pem
 *.zip
+.claude/
