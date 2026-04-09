@@ -19,16 +19,6 @@ export interface AnalyzeRequestMessage {
   payload: SelectionContext;
 }
 
-export interface SelectionChangedMessage {
-  type: "SELECTION_CHANGED";
-  payload: { hasSelection: boolean };
-}
-
-export interface AnalysisStartedMessage {
-  type: "ANALYSIS_STARTED";
-  payload: { selectedText: string };
-}
-
 export interface AnalysisResultMessage {
   type: "ANALYSIS_RESULT";
   payload: AnalysisResponse;
@@ -60,8 +50,6 @@ export interface RunAnalysisMessage {
 
 export type ExtensionMessage =
   | AnalyzeRequestMessage
-  | SelectionChangedMessage
-  | AnalysisStartedMessage
   | AnalysisResultMessage
   | AnalysisErrorMessage
   | RetryAnalysisMessage
