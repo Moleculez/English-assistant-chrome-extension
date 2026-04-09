@@ -7,6 +7,7 @@ import {
 } from "../../ui/components/tooltip";
 import type { UseTtsReturn } from "../hooks/useTts";
 import type { TtsProvider } from "../../lib/storage/types";
+import { countWords } from "../../lib/utils/text";
 
 interface TtsButtonProps {
   text: string;
@@ -19,15 +20,13 @@ interface TtsButtonProps {
 export function TtsButton({ text, tts, voiceURI, ttsProvider, coquiServerUrl }: TtsButtonProps) {
   const { speak, pause, resume, stop, isPlaying, isPaused } = tts;
 
-  const wordCount = text.split(/\s+/).filter(Boolean).length;
-
   const handleClick = () => {
     if (isPlaying) {
       pause();
     } else if (isPaused) {
       resume();
     } else {
-      speak(text, { voiceURI, provider: ttsProvider, coquiServerUrl, wordCount });
+      speak(text, { voiceURI, provider: ttsProvider, coquiServerUrl, wordCount: countWords(text) });
     }
   };
 

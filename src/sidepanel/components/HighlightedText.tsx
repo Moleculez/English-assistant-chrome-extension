@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { GlossaryEntry } from "../../lib/llm/types";
+import { countWords } from "../../lib/utils/text";
 import {
   Tooltip,
   TooltipContent,
@@ -22,7 +23,7 @@ interface TextSegment {
 
 function buildSegments(text: string, glossary: GlossaryEntry[]): TextSegment[] {
   if (glossary.length === 0) {
-    return [{ text, entry: null, wordStartIndex: 0, wordEndIndex: text.split(/\s+/).filter(Boolean).length - 1 }];
+    return [{ text, entry: null, wordStartIndex: 0, wordEndIndex: countWords(text) - 1 }];
   }
 
   const sorted = [...glossary].sort(
@@ -42,7 +43,7 @@ function buildSegments(text: string, glossary: GlossaryEntry[]): TextSegment[] {
     const matchStart = match.index;
     if (matchStart > lastIndex) {
       const chunk = text.slice(lastIndex, matchStart);
-      const chunkWords = chunk.split(/\s+/).filter(Boolean).length;
+      const chunkWords = countWords(chunk);
       segments.push({ text: chunk, entry: null, wordStartIndex: wordCounter, wordEndIndex: wordCounter + chunkWords - 1 });
       wordCounter += chunkWords;
     }
@@ -50,7 +51,7 @@ function buildSegments(text: string, glossary: GlossaryEntry[]): TextSegment[] {
     const matched = match[0];
     const entry =
       sorted.find((e) => e.term.toLowerCase() === matched.toLowerCase()) ?? null;
-    const matchWords = matched.split(/\s+/).filter(Boolean).length;
+    const matchWords = countWords(matched);
 
     segments.push({ text: matched, entry, wordStartIndex: wordCounter, wordEndIndex: wordCounter + matchWords - 1 });
     wordCounter += matchWords;
@@ -59,7 +60,7 @@ function buildSegments(text: string, glossary: GlossaryEntry[]): TextSegment[] {
 
   if (lastIndex < text.length) {
     const chunk = text.slice(lastIndex);
-    const chunkWords = chunk.split(/\s+/).filter(Boolean).length;
+    const chunkWords = countWords(chunk);
     segments.push({ text: chunk, entry: null, wordStartIndex: wordCounter, wordEndIndex: wordCounter + chunkWords - 1 });
   }
 

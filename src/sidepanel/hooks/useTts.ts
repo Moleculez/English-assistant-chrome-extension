@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TtsProvider } from "../../lib/storage/types";
+import { countWords } from "../../lib/utils/text";
 
 export interface UseTtsReturn {
   speak: (text: string, options?: TtsOptions) => void;
@@ -27,8 +28,7 @@ const BROWSER_TTS =
   typeof window !== "undefined" && "speechSynthesis" in window;
 
 function charIndexToWordIndex(text: string, charIndex: number): number {
-  const before = text.slice(0, charIndex);
-  return before.split(/\s+/).filter(Boolean).length;
+  return countWords(text.slice(0, charIndex));
 }
 
 export function useTts(): UseTtsReturn {
@@ -170,9 +170,9 @@ export function useTts(): UseTtsReturn {
   const speak = useCallback((text: string, options?: TtsOptions) => {
     stop();
     const provider = options?.provider ?? "browser";
-    const wordCount = options?.wordCount ?? text.split(/\s+/).filter(Boolean).length;
+    const wc = options?.wordCount ?? countWords(text);
     if (provider === "coqui" && options?.coquiServerUrl) {
-      speakWithCoqui(text, options.coquiServerUrl, wordCount);
+      speakWithCoqui(text, options.coquiServerUrl, wc);
     } else {
       speakWithBrowser(text, options?.voiceURI);
     }

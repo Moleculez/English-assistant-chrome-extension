@@ -16,3 +16,7 @@ export function splitSentences(text: string): string[] {
 export function cleanWhitespace(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
+
+export function countWords(text: string): number {
+  return text.split(/\s+/).filter(Boolean).length;
+}

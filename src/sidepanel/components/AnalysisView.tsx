@@ -18,6 +18,7 @@ import { Separator } from "../../ui/components/separator";
 import { cn } from "../../ui/cn";
 import type { AnalysisResponse, CEFRLevel } from "../../lib/llm/types";
 import type { TtsProvider } from "../../lib/storage/types";
+import { countWords } from "../../lib/utils/text";
 import { getSettings, onSettingsChanged } from "../../lib/storage/settings";
 import { useTts } from "../hooks/useTts";
 import { GlossaryList } from "./GlossaryList";
@@ -33,9 +34,6 @@ interface AnalysisViewProps {
   isStreaming?: boolean;
 }
 
-function wordCount(text: string): number {
-  return text.split(/\s+/).filter(Boolean).length;
-}
 
 function confidenceColor(value: number): string {
   if (value > 0.8) return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
@@ -103,8 +101,8 @@ export function AnalysisView({
 
   if (!analysis) return null;
 
-  const originalWords = wordCount(selectedText);
-  const simplifiedWords = wordCount(analysis.simplified);
+  const originalWords = countWords(selectedText);
+  const simplifiedWords = countWords(analysis.simplified);
   const isTtsActive = tts.isPlaying || tts.isPaused;
 
   return (

@@ -93,7 +93,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== "simplify-selection") return;
 
   if (tab?.windowId) {
-    await chrome.sidePanel.open({ windowId: tab.windowId });
+    await chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => {});
   }
 
   if (isPdfUrl(tab?.url) && info.selectionText) {
@@ -129,7 +129,7 @@ chrome.commands.onCommand.addListener(async (command) => {
   });
 
   if (activeTab?.windowId) {
-    await chrome.sidePanel.open({ windowId: activeTab.windowId });
+    await chrome.sidePanel.open({ windowId: activeTab.windowId }).catch(() => {});
   }
 
   if (activeTab?.id !== undefined) {

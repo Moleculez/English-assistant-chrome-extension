@@ -8,7 +8,7 @@ const SELECTION_DEBOUNCE_MS = 150;
 const MIN_SELECTION_LENGTH = 3;
 const TOOLTIP_AUTO_DISMISS_MS = 8000;
 const TOOLTIP_HINT = "Click to simplify in Easy English";
-const PDF_TOOLTIP_HINT = "Right-click → Simplify in Easy English";
+const PDF_TOOLTIP_HINT = "Select text, then right-click → Simplify in Easy English\nor press Ctrl+Shift+E";
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let tooltipDismissTimer: ReturnType<typeof setTimeout> | null = null;
@@ -78,17 +78,17 @@ function handleSelectionChange(x: number, y: number): void {
   showTooltipNearButton();
 }
 
-function onMouseUp(e: MouseEvent): void {
-  if (
-    e.target instanceof HTMLElement &&
-    (e.target.closest(".eer-floating-btn") || e.target.closest(".eer-tooltip") || e.target.closest(".eer-pdf-hint"))
-  ) {
-    return;
-  }
+function isOwnElement(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    !!(target.closest(".eer-floating-btn") || target.closest(".eer-tooltip"))
+  );
+}
 
-  if (debounceTimer !== null) {
-    clearTimeout(debounceTimer);
-  }
+function onMouseUp(e: MouseEvent): void {
+  if (isOwnElement(e.target)) return;
+
+  if (debounceTimer !== null) clearTimeout(debounceTimer);
 
   debounceTimer = setTimeout(() => {
     handleSelectionChange(e.clientX, e.clientY);
@@ -96,12 +96,7 @@ function onMouseUp(e: MouseEvent): void {
 }
 
 function onMouseDown(e: MouseEvent): void {
-  if (
-    e.target instanceof HTMLElement &&
-    (e.target.closest(".eer-floating-btn") || e.target.closest(".eer-tooltip") || e.target.closest(".eer-pdf-hint"))
-  ) {
-    return;
-  }
+  if (isOwnElement(e.target)) return;
   hideAll();
 }
 
@@ -121,29 +116,20 @@ function onMessage(
 
 /**
  * PDF pages: Chrome's PDF viewer renders inside an isolated <embed>.
- * Content scripts can't read selections inside it, but mouseup events
- * DO fire on the embed element. Show a floating button on mouseup that
- * guides the user to right-click or use the keyboard shortcut.
+ * Content scripts can't read selections inside it. Show a floating
+ * icon on mouseup that displays usage instructions via tooltip.
  */
 function initPdfSupport(): void {
   const embed = document.querySelector('embed[type="application/pdf"]') as HTMLElement | null;
   const target = embed ?? document.body;
 
-  // On mouseup inside the PDF area, show a floating action button
   target.addEventListener("mouseup", (e: Event) => {
     const me = e as MouseEvent;
-
     if (debounceTimer !== null) clearTimeout(debounceTimer);
 
     debounceTimer = setTimeout(() => {
-      // Show the floating icon at the mouse position
-      // When clicked, trigger the keyboard shortcut flow (service worker will
-      // use context menu selectionText which works for PDFs)
-      showFloatingIcon(me.clientX, me.clientY, () => {
-        hideAll();
-        // Send to service worker which triggers the keyboard shortcut path
-        chrome.runtime.sendMessage({ type: "TRIGGER_ANALYZE" }).catch(() => {});
-      });
+      // Show icon — purely informational on PDFs since we can't read the selection
+      showFloatingIcon(me.clientX, me.clientY, () => hideAll());
 
       const pos = getButtonPosition();
       if (pos) {
@@ -153,9 +139,7 @@ function initPdfSupport(): void {
     }, SELECTION_DEBOUNCE_MS);
   });
 
-  target.addEventListener("mousedown", () => {
-    hideAll();
-  });
+  target.addEventListener("mousedown", () => hideAll());
 }
 
 function init(): void {

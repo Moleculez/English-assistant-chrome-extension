@@ -110,69 +110,6 @@
   }
 }
 
-/* PDF hint banner */
-.eer-pdf-hint {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 2147483645;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  max-width: 340px;
-  padding: 12px 14px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-left: 3px solid #6366f1;
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 13px;
-  line-height: 1.5;
-  color: #374151;
-  opacity: 0;
-  animation: eer-fade-in 0.3s ease forwards;
-  transition: opacity 0.3s ease;
-}
-
-.eer-pdf-hint__icon {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.eer-pdf-hint__text strong {
-  color: #111827;
-  font-size: 13px;
-}
-
-.eer-pdf-hint__text em {
-  color: #6366f1;
-  font-style: normal;
-  font-weight: 500;
-}
-
-.eer-pdf-hint__shortcut {
-  font-size: 11px;
-  color: #9ca3af;
-}
-
-.eer-pdf-hint__close {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  color: #9ca3af;
-  line-height: 1;
-  padding: 2px;
-}
-
-.eer-pdf-hint__close:hover {
-  color: #374151;
-}
-
 @media (prefers-color-scheme: dark) {
   .eer-tooltip {
     background: #1e1e2e;
@@ -190,27 +127,4 @@
     color: #818cf8;
   }
 
-  .eer-pdf-hint {
-    background: #1f2937;
-    border-color: #374151;
-    border-left-color: #818cf8;
-    color: #d1d5db;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  }
-
-  .eer-pdf-hint__text strong {
-    color: #f3f4f6;
-  }
-
-  .eer-pdf-hint__text em {
-    color: #818cf8;
-  }
-
-  .eer-pdf-hint__close {
-    color: #6b7280;
-  }
-
-  .eer-pdf-hint__close:hover {
-    color: #d1d5db;
-  }
 }
