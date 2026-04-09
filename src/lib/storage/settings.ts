@@ -15,10 +15,14 @@ export async function saveSettings(
 
 export function onSettingsChanged(
   callback: (settings: UserSettings) => void
-): void {
-  chrome.storage.sync.onChanged.addListener((changes) => {
+): () => void {
+  const listener = (changes: {
+    [key: string]: chrome.storage.StorageChange;
+  }): void => {
     if (changes.settings) {
       callback({ ...DEFAULT_SETTINGS, ...changes.settings.newValue });
     }
-  });
+  };
+  chrome.storage.sync.onChanged.addListener(listener);
+  return () => chrome.storage.sync.onChanged.removeListener(listener);
 }

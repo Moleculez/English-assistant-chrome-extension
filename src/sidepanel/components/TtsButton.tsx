@@ -9,9 +9,10 @@ import { useTts } from "../hooks/useTts";
 
 interface TtsButtonProps {
   text: string;
+  voiceURI?: string;
 }
 
-export function TtsButton({ text }: TtsButtonProps) {
+export function TtsButton({ text, voiceURI }: TtsButtonProps) {
   const { speak, pause, resume, stop, isPlaying, isPaused, isSupported } =
     useTts();
 
@@ -23,7 +24,7 @@ export function TtsButton({ text }: TtsButtonProps) {
     } else if (isPaused) {
       resume();
     } else {
-      speak(text);
+      speak(text, voiceURI);
     }
   };
 

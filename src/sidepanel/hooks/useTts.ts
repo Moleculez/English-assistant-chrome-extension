@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseTtsReturn {
-  speak: (text: string) => void;
+  speak: (text: string, voiceURI?: string) => void;
   pause: () => void;
   resume: () => void;
   stop: () => void;
@@ -34,7 +34,7 @@ export function useTts(): UseTtsReturn {
     };
   }, []);
 
-  const speak = useCallback((text: string) => {
+  const speak = useCallback((text: string, voiceURI?: string) => {
     if (!TTS_SUPPORTED) return;
 
     window.speechSynthesis.cancel();
@@ -42,6 +42,14 @@ export function useTts(): UseTtsReturn {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
     utterance.pitch = 1;
+
+    if (voiceURI) {
+      const voices = window.speechSynthesis.getVoices();
+      const voice = voices.find((v) => v.voiceURI === voiceURI);
+      if (voice) {
+        utterance.voice = voice;
+      }
+    }
 
     utterance.onstart = () => {
       setIsPlaying(true);
