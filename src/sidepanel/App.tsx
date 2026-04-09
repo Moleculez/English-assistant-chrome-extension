@@ -1,9 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { TooltipProvider } from "../ui/components/tooltip";
 import { ThemeProvider } from "../ui/theme-provider";
 import { ScrollArea } from "../ui/components/scroll-area";
 import type { AnalysisResponse, CEFRLevel } from "../lib/llm/types";
 import type { HistoryEntry } from "../lib/storage/types";
+import { getSettings } from "../lib/storage/settings";
 import { useAnalysis } from "./hooks/useAnalysis";
 import { useHistory } from "./hooks/useHistory";
 import { Header } from "./components/Header";
@@ -29,6 +30,12 @@ export function App() {
   const [restoredAnalysis, setRestoredAnalysis] =
     useState<AnalysisResponse | null>(null);
   const [restoredSelectedText, setRestoredSelectedText] = useState("");
+
+  useEffect(() => {
+    getSettings().then((settings) => {
+      setCurrentLevel(settings.defaultLevel);
+    });
+  }, []);
 
   const analysis = restoredAnalysis ?? liveAnalysis;
   const selectedText = restoredAnalysis
