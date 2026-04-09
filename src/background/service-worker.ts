@@ -113,7 +113,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     );
     await runAnalysis(request);
   } else if (tab?.id !== undefined) {
-    await chrome.tabs.sendMessage(tab.id, { type: "TRIGGER_ANALYZE" });
+    await chrome.tabs.sendMessage(tab.id, { type: "TRIGGER_ANALYZE" }).catch(() => {});
   }
 });
 
@@ -133,6 +133,6 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 
   if (activeTab?.id !== undefined) {
-    await chrome.tabs.sendMessage(activeTab.id, { type: "TRIGGER_ANALYZE" });
+    await chrome.tabs.sendMessage(activeTab.id, { type: "TRIGGER_ANALYZE" }).catch(() => {});
   }
 });
