@@ -115,31 +115,32 @@ function onMessage(
 }
 
 /**
- * PDF pages: Chrome's PDF viewer renders inside an isolated <embed>.
- * Content scripts can't read selections inside it. Show a floating
- * icon on mouseup that displays usage instructions via tooltip.
+ * PDF: Chrome's PDF viewer swallows mouse/selection events inside its <embed>.
+ * We show a persistent floating hint button in the corner. Users must use
+ * right-click context menu to simplify PDF text (Chrome provides selectionText
+ * for PDFs via the context menu API even though JS can't access it).
  */
 function initPdfSupport(): void {
-  const embed = document.querySelector('embed[type="application/pdf"]') as HTMLElement | null;
-  const target = embed ?? document.body;
+  const btn = document.createElement("button");
+  btn.className = "eer-pdf-fab";
+  btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" width="22" height="22">
+    <rect width="128" height="128" rx="28" fill="#6366f1"/>
+    <path d="M28 42C28 39 30 37 33 37L60 37C62 37 62 37 62 39L62 92C62 94 60 94 58 93C52 90 42 88 33 88C30 88 28 86 28 84Z" fill="white" opacity="0.9"/>
+    <path d="M66 39C66 37 66 37 68 37L95 37C98 37 100 39 100 42L100 84C100 86 98 88 95 88C86 88 76 90 70 93C68 94 66 94 66 92Z" fill="white"/>
+    <g transform="translate(94,28)"><path d="M0-10C1-3 3-1 10 0 3 1 1 3 0 10-1 3-3 1-10 0-3-1-1-3 0-10Z" fill="#fbbf24"/></g>
+  </svg>`;
+  btn.setAttribute("aria-label", "Easy English Reader — select text, then right-click to simplify");
+  btn.title = "Select text → Right-click → Simplify in Easy English\nOr press Ctrl+Shift+E";
 
-  target.addEventListener("mouseup", (e: Event) => {
-    const me = e as MouseEvent;
-    if (debounceTimer !== null) clearTimeout(debounceTimer);
-
-    debounceTimer = setTimeout(() => {
-      // Show icon — purely informational on PDFs since we can't read the selection
-      showFloatingIcon(me.clientX, me.clientY, () => hideAll());
-
-      const pos = getButtonPosition();
-      if (pos) {
-        showTooltip(pos.left, pos.top, PDF_TOOLTIP_HINT);
-        startTooltipDismissTimer();
-      }
-    }, SELECTION_DEBOUNCE_MS);
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    // Show a tooltip near the button with instructions
+    const rect = btn.getBoundingClientRect();
+    showTooltip(rect.left - 220, rect.top, PDF_TOOLTIP_HINT);
+    startTooltipDismissTimer();
   });
 
-  target.addEventListener("mousedown", () => hideAll());
+  document.body.appendChild(btn);
 }
 
 function init(): void {
