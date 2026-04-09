@@ -34,9 +34,12 @@ npm-debug.log*
 
 # TTS server
 tts-server/venv/
+tts-server/*.wav
 
 # Chrome extension dev
 *.crx
 *.pem
 releases/
+
+# Claude Code
 .claude/

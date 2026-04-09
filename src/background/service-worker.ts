@@ -2,35 +2,30 @@ import type { AnalysisRequest, CEFRLevel } from "../lib/llm/types";
 import { onMessage } from "../lib/messages/handler";
 import { getSettings } from "../lib/storage/settings";
 
-// ---------------------------------------------------------------------------
-// State: track the last analysis request so RETRY_ANALYSIS can re-run it
-// ---------------------------------------------------------------------------
 let lastAnalysisRequest: AnalysisRequest | null = null;
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function isPdfUrl(url: string | undefined): boolean {
   if (!url) return false;
   try {
-    const pathname = new URL(url).pathname;
-    return pathname.toLowerCase().endsWith(".pdf");
+    return new URL(url).pathname.toLowerCase().endsWith(".pdf");
   } catch {
     return false;
   }
 }
 
-/** Send a message to the side panel, ignoring errors if it is not open yet. */
 function sendToSidePanel(message: unknown): Promise<void> {
   return chrome.runtime.sendMessage(message).catch(() => {});
 }
 
-/**
- * Send analysis request to the side panel for execution.
- * The side panel makes the actual LLM call — extension pages can fetch
- * without the Origin header issues that service workers have with Ollama.
- */
+function tryOpenSidePanel(windowId: number | undefined): void {
+  if (windowId === undefined) return;
+  try {
+    chrome.sidePanel.open({ windowId }).catch(() => {});
+  } catch {
+    // sidePanel.open() may throw synchronously if not in a user gesture
+  }
+}
+
 async function runAnalysis(request: AnalysisRequest): Promise<void> {
   lastAnalysisRequest = request;
   await sendToSidePanel({ type: "RUN_ANALYSIS", payload: request });
@@ -92,9 +87,8 @@ onMessage("RETRY_ANALYSIS", async (payload) => {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== "simplify-selection") return;
 
-  if (tab?.windowId) {
-    await chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => {});
-  }
+  // Call immediately before any await — preserves user gesture context
+  tryOpenSidePanel(tab?.windowId);
 
   if (isPdfUrl(tab?.url) && info.selectionText) {
     const settings = await getSettings();
@@ -128,9 +122,8 @@ chrome.commands.onCommand.addListener(async (command) => {
     currentWindow: true,
   });
 
-  if (activeTab?.windowId) {
-    await chrome.sidePanel.open({ windowId: activeTab.windowId }).catch(() => {});
-  }
+  // User gesture chain may be broken by the await above — tryOpenSidePanel handles this gracefully
+  tryOpenSidePanel(activeTab?.windowId);
 
   if (activeTab?.id !== undefined) {
     await chrome.tabs.sendMessage(activeTab.id, { type: "TRIGGER_ANALYZE" }).catch(() => {});

@@ -3,7 +3,7 @@ import { defineManifest } from "@crxjs/vite-plugin";
 export default defineManifest({
   manifest_version: 3,
   name: "Easy English Reader",
-  version: "0.2.0",
+  version: "0.2.1",
   description:
     "ESL reading aid - select text and get simplified English explanations",
   permissions: ["sidePanel", "contextMenus", "storage", "activeTab", "tabs"],
